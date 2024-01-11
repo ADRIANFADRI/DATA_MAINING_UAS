@@ -5,37 +5,36 @@ import numpy as np
 import matplotlib.pyplot as plt 
 from sklearn.metrics import accuracy_score
 from sklearn.model_selection import train_test_split
-from pandas_profiling import ProfileReport
-from streamlit_pandas_profiling import st_profile_report
+from sklearn.naive_bayes import MultinomialNB
 import seaborn as sns 
 import pickle 
 
 #import model 
-svm = pickle.load(open('SVC.pkl','rb'))
+naive_bayes_model = pickle.load(open('naive_bayes_model.pkl', 'rb'))
 
 #load dataset
-data = pd.read_csv('diabetes.csv')
+data = pd.read_csv('Bank Customer Churn Dataset.csv')
 #data = data.drop(data.columns[0],axis=1)
 
-st.title('Aplikasi Diabetes')
+st.title('Aplikasi Bank Customer')
 
 html_layout1 = """
 <br>
-<div style="background-color:red ; padding:2px">
-<h2 style="color:white;text-align:center;font-size:35px"><b>Diabetes Checkup</b></h2>
+<div style="background-color:blue ; padding:2px">
+<h2 style="color:white;text-align:center;font-size:40px"><b>Pelanggan Checkup</b></h2>
 </div>
 <br>
 <br>
 """
 st.markdown(html_layout1,unsafe_allow_html=True)
-activities = ['SVM','Model Lain']
+activities = ['naive bayes','Model Lain']
 option = st.sidebar.selectbox('Pilihan mu ?',activities)
-st.sidebar.header('Data Pasien')
+st.sidebar.header('Data Pelanggan')
 
 if st.checkbox("Tentang Dataset"):
     html_layout2 ="""
     <br>
-    <p>Ini adalah dataset PIMA Indian</p>
+    <p>Ini adalah dataset Bank Customer</p>
     """
     st.markdown(html_layout2,unsafe_allow_html=True)
     st.subheader('Dataset')
@@ -46,16 +45,16 @@ if st.checkbox("Tentang Dataset"):
 sns.set_style('darkgrid')
 
 if st.checkbox('EDa'):
-    pr =ProfileReport(data,explorative=True)
+    
     st.header('**Input Dataframe**')
     st.write(data)
     st.write('---')
     st.header('**Profiling Report**')
-    st_profile_report(pr)
+    
 
 #train test split
-X = data.drop('Outcome',axis=1)
-y = data['Outcome']
+y = data['churn']
+X = data[['credit_score', 'age', 'tenure', 'balance', 'products_number', 'credit_card', 'active_member', 'estimated_salary']]
 X_train, X_test,y_train,y_test = train_test_split(X,y,test_size=0.20,random_state=42)
 
 #Training Data
@@ -73,46 +72,51 @@ if st.checkbox('Train-Test Dataset'):
     st.write(y_test.shape)
 
 def user_report():
-    kehamilan = st.sidebar.slider('Kehamilan',0,20,1)
-    glukosa = st.sidebar.slider('Glukosa',0,200,108)
-    bp = st.sidebar.slider('Tekanan Darah',0,140,40)
-    skinthickness = st.sidebar.slider('Ketebalan Kulit',0,100,25)
-    insulin = st.sidebar.slider('Insulin',0,1000,120)
-    bmi = st.sidebar.slider('BMI',0,80,25)
-    diabetespd = st.sidebar.slider('Diabetes Pedigree', 0.05,2.5,0.45)
-    age = st.sidebar.slider('Usia',21,100,24)
+    customer_id = st.sidebar.slider('Customer ID', 0, 20, 1)
+    credit_score = st.sidebar.slider('Credit Score', 0, 200, 108)
+    country = st.sidebar.slider('Country', 0, 140, 40)
+    gender = st.sidebar.slider('Gender', 0, 100, 25)
+    age = st.sidebar.slider('Age', 21, 100, 24, step=1)
+    tenure = st.sidebar.slider('Tenure', 0, 80, 25)
+    
+    # Menggunakan number_input untuk mendapatkan input float
+    balance = st.sidebar.number_input('Balance', min_value=0.0, max_value=2.5, step=0.01, value=0.45)
+    
+    products_number = st.sidebar.slider('Products Number', 21, 100, 24, step=1)
+    credit_card = st.sidebar.slider('Credit Card', 0, 100, 24, step=1)
+    active_member = st.sidebar.slider('Active Member', 0, 100, 24, step=1)
+    estimated_salary = st.sidebar.slider('Estimated Salary', 0, 100, 24, step=1)
     
     user_report_data = {
-        'Pregnancies':kehamilan,
-        'Glucose':glukosa,
-        'BloodPressure':bp,
-        'SkinThickness':skinthickness,
-        'Insulin':insulin,
-        'BMI':bmi,
-        'DiabetesPedigreeFunction':diabetespd,
-        'Age':age
+        'credit_score': credit_score,
+        'age': age,
+        'tenure': tenure,
+        'balance': balance,
+        'products_number': products_number,
+        'credit_card': credit_card,
+        'active_member': active_member,
+        'estimated_salary': estimated_salary
     }
-    report_data = pd.DataFrame(user_report_data,index=[0])
+    
+    report_data = pd.DataFrame(user_report_data, index=[0])
     return report_data
+
 
 #Data Pasion
 user_data = user_report()
-st.subheader('Data Pasien')
+st.subheader('Data Pelangan')
 st.write(user_data)
 
-user_result = svm.predict(user_data)
-svc_score = accuracy_score(y_test,svm.predict(X_test))
+user_result = naive_bayes_model.predict(user_data)
+naive_bayes_score = accuracy_score(y_test, naive_bayes_model.predict(X_test))
 
 #output
-st.subheader('Hasilnya adalah : ')
-output=''
-if user_result[0]==0:
-    output='Kamu Aman'
+st.subheader('Hasil Prediksi:')
+if user_result[0] == 0:
+    output = 'Pelanggan tetap (churn negatif)'
 else:
-    output ='Kamu terkena diabetes'
+    output = 'Pelanggan berpindah (churn positif)'
 st.title(output)
 st.subheader('Model yang digunakan : \n'+option)
 st.subheader('Accuracy : ')
-st.write(str(svc_score*100)+'%')
-
-
+st.write(str(naive_bayes_score*100)+'%')
